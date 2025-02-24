@@ -21,9 +21,7 @@ function createPage(
     string calldata _name,
     string calldata _thumbnail,
     string calldata _initialHtml,
-    OwnershipType _ownershipType,
-    address[] calldata _multiSigOwners,
-    uint256 _multiSigThreshold,
+    OwnershipConfig calldata _ownerConfig,
     uint256 _updateFee,
     bool _imt
 ) external returns (uint256 pageId);
@@ -32,9 +30,11 @@ function createPage(
 - Registers a new HTML page on-chain
 - `_name`: Page name
 - `_thumbnail`: Base64 encoded thumbnail image
-- `_initialHtml`: Initial HTML content
-- `_ownershipType`: Ownership type (Single/MultiSig/Permissionless)
-- For MultiSig, `_multiSigOwners` and `_multiSigThreshold` set the owner list and approval threshold
+- `_initialHtml`: Initial HTML content (must start with DOCTYPE and end with </html>)
+- `_ownerConfig`: Ownership configuration struct containing:
+  - `ownershipType`: Type of ownership (Single/MultiSig/Permissionless)
+  - `multiSigOwners`: List of owners for Single/MultiSig pages
+  - `multiSigThreshold`: Required approvals for MultiSig
 - `_updateFee`: Required payment for page modification requests (in Wei)
 - `_imt`: Immutable flag for the page
 - Returns `pageId`: Page identification number (increments from 1)
@@ -123,18 +123,23 @@ function distributePageTreasury(uint256 _pageId) external;
 
 ---
 
-## Simple Usage Example
+### Simple Usage Example
 
 ### 1. Create Page (Single Type Example)
 
 ```solidity
+IWeb3ite.OwnershipConfig memory config = IWeb3ite.OwnershipConfig({
+    ownershipType: IWeb3ite.OwnershipType.Single,
+    multiSigOwners: new address[](1),
+    multiSigThreshold: 1
+});
+config.multiSigOwners[0] = msg.sender;  // Set single owner
+
 uint256 pageId = web3ite.createPage(
     "My First Page",
     "base64EncodedThumbnail",
-    "Hello On-Chain HTML!",
-    IWeb3ite.OwnershipType.Single,
-    new address[](0),  // No MultiSig owners
-    0,                 // No MultiSig threshold
+    "<!DOCTYPE html><html>Hello On-Chain HTML!</html>",
+    config,
     1e15,             // Example: 0.001 ETH as update fee
     false             // Not immutable
 );
