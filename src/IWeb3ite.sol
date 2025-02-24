@@ -3,22 +3,25 @@ pragma solidity ^0.8.17;
 
 /**
  * @title IWeb3ite
- * @notice 페이지 생성/수정 기능을 제공하는 DApp 컨트랙트의 인터페이스
+ * @notice Interface for DApp contract that provides page creation and modification functionality
  */
 interface IWeb3ite {
-    // 소유권 타입
+    // Ownership types
     enum OwnershipType {
-        Single,         // 0 - 개인
-        MultiSig,       // 1 - 멀티시그
-        Permissionless  // 2 - 누구나 수정 가능
+        Single,         // 0 - Single owner
+        MultiSig,       // 1 - Multiple owners with threshold
+        Permissionless  // 2 - Anyone can modify
     }
 
-    // 이벤트들
+    // Events
     event PageCreated(
         uint256 indexed pageId,
         address indexed creator,
+        string name,
+        string thumbnail,
         OwnershipType ownershipType,
-        uint256 updateFee
+        uint256 updateFee,
+        bool imt
     );
     event UpdateRequested(
         uint256 indexed pageId,
@@ -45,7 +48,7 @@ interface IWeb3ite {
         OwnershipType oldType,
         OwnershipType newType
     );
-    // 새로 추가: 페이지 트레저리 분배 이벤트
+    // New: Event for page treasury distribution
     event PageTreasuryDistributed(
         uint256 indexed pageId,
         address indexed winner,
@@ -53,46 +56,59 @@ interface IWeb3ite {
     );
 
     /**
-     * @notice 새로운 HTML 페이지를 생성한다.
-     * @param _initialHtml 페이지의 초기 HTML
-     * @param _ownershipType 소유권 타입 (0=Single,1=MultiSig,2=Permissionless)
-     * @param _multiSigOwners 멀티시그 소유자들 (Single/Permissionless일 경우 빈 배열)
-     * @param _multiSigThreshold 멀티시그 threshold
-     * @param _updateFee 이 페이지를 수정할 때마다 지불해야 하는 개별 수수료
-     * @return pageId 생성된 페이지의 식별자
+     * @notice Creates a new page with specified parameters
+     * @param _name Page name
+     * @param _thumbnail Base64 encoded thumbnail image
+     * @param _initialHtml Initial HTML content
+     * @param _ownershipType Type of ownership (Single/MultiSig/Permissionless)
+     * @param _multiSigOwners Array of owner addresses for MultiSig type
+     * @param _multiSigThreshold Required number of approvals for MultiSig
+     * @param _updateFee Fee required for update requests
+     * @param _imt IMT token flag
+     * @return pageId Unique identifier for the created page
      */
     function createPage(
+        string calldata _name,
+        string calldata _thumbnail,
         string calldata _initialHtml,
         OwnershipType _ownershipType,
         address[] calldata _multiSigOwners,
         uint256 _multiSigThreshold,
-        uint256 _updateFee
+        uint256 _updateFee,
+        bool _imt
     ) external returns (uint256 pageId);
 
     /**
-     * @notice 페이지 수정 요청(또는 Permissionless 시 즉시 반영)을 등록한다.
-     * @param _pageId 수정하고자 하는 페이지 ID
-     * @param _newHtml 제안하는 새 HTML
+     * @notice Submits an update request (or immediate update for Permissionless)
+     * @param _pageId ID of the page to update
+     * @param _newHtml Proposed new HTML content
      */
     function requestUpdate(uint256 _pageId, string calldata _newHtml) external payable;
 
     /**
-     * @notice Single/MultiSig 페이지의 수정 요청을 승인한다.
-     *         threshold 도달 시 실제 HTML 업데이트 실행
-     * @param _pageId 페이지 ID
-     * @param _requestId 수정 요청 ID
+     * @notice Approves an update request for Single/MultiSig pages
+     *         Executes the update when threshold is reached
+     * @param _pageId Page ID
+     * @param _requestId Update request ID
      */
     function approveRequest(uint256 _pageId, uint256 _requestId) external;
 
     /**
-     * @notice 페이지별로 누적된 수수료를 출금한다.
-     *         Single 오너 => 본인만
-     *         MultiSig => 오너 중 한 명(간단 구현)
-     *         Permissionless => 없음(예시)
-     * @param _pageId 페이지 ID
+     * @notice Withdraws accumulated fees for a page
+     *         Single owner => Only owner can withdraw
+     *         MultiSig => Any owner can trigger equal distribution to all owners
+     *         Permissionless => Not available
+     * @param _pageId Page ID
      */
     function withdrawPageFees(uint256 _pageId) external;
 
+    /**
+     * @notice Changes the ownership type of a page (only available for Single type)
+     * @param _pageId Page ID
+     * @param _newOwnershipType New ownership type
+     * @param _newMultiSigOwners New owner addresses for MultiSig
+     * @param _newMultiSigThreshold New threshold for MultiSig
+     */
     function changeOwnership(
         uint256 _pageId,
         OwnershipType _newOwnershipType,
@@ -100,18 +116,21 @@ interface IWeb3ite {
         uint256 _newMultiSigThreshold
     ) external;
 
-    // 새로 추가: Permissionless page의 treasury를 분배
+    /**
+     * @notice Distributes the treasury of a Permissionless page to one of the participants
+     * @param _pageId Page ID
+     */
     function distributePageTreasury(uint256 _pageId) external;
 
-    // 조회 함수들
+    // View functions
     function getCurrentHtml(uint256 _pageId) external view returns (string memory);
-    function getMultiSigOwners(uint256 _pageId) external view returns (address[] memory);
+    function getPageOwners(uint256 _pageId) external view returns (address[] memory);
     function getUpdateRequest(
         uint256 _pageId, 
         uint256 _requestId
     ) external view returns (string memory newHtml, bool executed, uint256 approvalCount);
 
-    // 페이지별 누적된 수수료
+    // Accumulated fees per page
     function pageBalances(uint256 _pageId) external view returns (uint256);
     function pageCount() external view returns (uint256);
 }

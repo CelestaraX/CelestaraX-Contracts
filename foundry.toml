@@ -2,5 +2,12 @@
 src = "src"
 out = "out"
 libs = ["lib"]
+via_ir = true
+solc = "0.8.17"
+optimizer = true
+optimizer_runs = 200
+
+[rpc_endpoints]
+mammoth = "https://rpc-mammothon-g2-testnet-4a2w8v0xqy.t.conduit.xyz"
 
 # See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options
