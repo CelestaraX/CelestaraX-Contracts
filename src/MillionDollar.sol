@@ -2,16 +2,16 @@
 pragma solidity ^0.8.17;
 
 contract MillionDollar {
-    uint256 public constant NUM_SLOTS = 9;  // 3x3 grid
-    uint256 public constant SECONDS_PER_WEEK = 604800;  // 1 week in seconds
+    uint256 public constant NUM_SLOTS = 9; // 3x3 grid
+    uint256 public constant SECONDS_PER_WEEK = 604800; // 1 week in seconds
     uint256 public constant COST_PER_WEEK = 0.1 ether;
 
     address public immutable owner;
 
     struct AdSlot {
         address adOwner;
-        string base64Image;  // format: "data:image/png;base64,..."
-        string link;        // URL to redirect when clicked
+        string base64Image; // format: "data:image/png;base64,..."
+        string link; // URL to redirect when clicked
         uint256 expiryTime; // expires after this timestamp
     }
 
@@ -31,11 +31,7 @@ contract MillionDollar {
         owner = msg.sender;
     }
 
-    function purchaseAd(
-        uint256 slotId,
-        string calldata base64Image,
-        string calldata link
-    ) external payable {
+    function purchaseAd(uint256 slotId, string calldata base64Image, string calldata link) external payable {
         require(slotId < NUM_SLOTS, "Invalid slotId");
         require(msg.value == COST_PER_WEEK, "Invalid payment amount");
         require(bytes(base64Image).length > 0, "Empty image");
@@ -57,11 +53,7 @@ contract MillionDollar {
         emit AdPurchased(slotId, msg.sender);
     }
 
-    function updateAd(
-        uint256 slotId,
-        string calldata newBase64Image,
-        string calldata newLink
-    ) external {
+    function updateAd(uint256 slotId, string calldata newBase64Image, string calldata newLink) external {
         require(slotId < NUM_SLOTS, "Invalid slotId");
         require(msg.sender == adSlots[slotId].adOwner, "Not the ad owner");
         require(block.timestamp <= adSlots[slotId].expiryTime, "Ad expired");
@@ -76,9 +68,9 @@ contract MillionDollar {
 
     function getAdJson(uint256 slotId) external view returns (string memory) {
         require(slotId < NUM_SLOTS, "Invalid slotId");
-        
+
         AdSlot memory slot = adSlots[slotId];
-        
+
         // Return empty string if slot is empty or expired
         if (slot.adOwner == address(0) || block.timestamp > slot.expiryTime) {
             return "";
@@ -87,12 +79,19 @@ contract MillionDollar {
         // Return in JSON format
         return string(
             abi.encodePacked(
-                '{',
-                '"owner":', uint256(uint160(slot.adOwner)), ',',
-                '"image":"', slot.base64Image, '",',
-                '"link":"', slot.link, '",',
-                '"expiry":', slot.expiryTime,
-                '}'
+                "{",
+                '"owner":',
+                uint256(uint160(slot.adOwner)),
+                ",",
+                '"image":"',
+                slot.base64Image,
+                '",',
+                '"link":"',
+                slot.link,
+                '",',
+                '"expiry":',
+                slot.expiryTime,
+                "}"
             )
         );
     }
@@ -100,10 +99,10 @@ contract MillionDollar {
     function withdraw() external onlyOwner {
         uint256 balance = address(this).balance;
         require(balance > 0, "No balance to withdraw");
-        
-        (bool success, ) = owner.call{value: balance}("");
+
+        (bool success,) = owner.call{value: balance}("");
         require(success, "Withdrawal failed");
-        
+
         emit PaymentWithdrawn(owner, balance);
     }
 }

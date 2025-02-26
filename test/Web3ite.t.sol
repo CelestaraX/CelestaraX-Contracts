@@ -23,7 +23,7 @@ contract Web3iteTest is Test {
     function test_CreateSinglePage() public {
         address[] memory owners = new address[](1);
         owners[0] = owner;
-        
+
         IWeb3ite.OwnershipConfig memory config = IWeb3ite.OwnershipConfig({
             ownershipType: IWeb3ite.OwnershipType.Single,
             multiSigOwners: owners,
@@ -31,21 +31,16 @@ contract Web3iteTest is Test {
         });
 
         uint256 pageId = web3ite.createPage(
-            "Test Page",
-            "base64Thumbnail",
-            "<!DOCTYPE html><html>Test</html>",
-            config,
-            0.001 ether,
-            false
+            "Test Page", "base64Thumbnail", "<!DOCTYPE html><html>Test</html>", config, 0.001 ether, false
         );
 
         assertEq(pageId, 1);
-        
+
         IWeb3ite.PageInfo memory info = web3ite.getPageInfo(pageId);
         assertEq(info.name, "Test Page");
         assertEq(info.thumbnail, "base64Thumbnail");
         assertEq(info.currentHtml, "<!DOCTYPE html><html>Test</html>");
-        assertEq(uint(info.ownershipType), uint(IWeb3ite.OwnershipType.Single));
+        assertEq(uint256(info.ownershipType), uint256(IWeb3ite.OwnershipType.Single));
         assertEq(info.updateFee, 0.001 ether);
         assertEq(info.imt, false);
     }
@@ -54,7 +49,7 @@ contract Web3iteTest is Test {
         address[] memory owners = new address[](2);
         owners[0] = owner;
         owners[1] = user1;
-        
+
         IWeb3ite.OwnershipConfig memory config = IWeb3ite.OwnershipConfig({
             ownershipType: IWeb3ite.OwnershipType.MultiSig,
             multiSigOwners: owners,
@@ -62,12 +57,7 @@ contract Web3iteTest is Test {
         });
 
         uint256 pageId = web3ite.createPage(
-            "MultiSig Page",
-            "base64Thumbnail",
-            "<!DOCTYPE html><html>Test</html>",
-            config,
-            0.001 ether,
-            false
+            "MultiSig Page", "base64Thumbnail", "<!DOCTYPE html><html>Test</html>", config, 0.001 ether, false
         );
 
         IWeb3ite.PageInfo memory info = web3ite.getPageInfo(pageId);
@@ -77,7 +67,7 @@ contract Web3iteTest is Test {
 
     function test_UpdatePermissionlessPage() public {
         address[] memory owners = new address[](0);
-        
+
         IWeb3ite.OwnershipConfig memory config = IWeb3ite.OwnershipConfig({
             ownershipType: IWeb3ite.OwnershipType.Permissionless,
             multiSigOwners: owners,
@@ -85,20 +75,12 @@ contract Web3iteTest is Test {
         });
 
         uint256 pageId = web3ite.createPage(
-            "Permissionless Page",
-            "base64Thumbnail",
-            "<!DOCTYPE html><html>Test</html>",
-            config,
-            0.001 ether,
-            false
+            "Permissionless Page", "base64Thumbnail", "<!DOCTYPE html><html>Test</html>", config, 0.001 ether, false
         );
 
         vm.prank(user1);
         web3ite.requestUpdate{value: 0.001 ether}(
-            pageId,
-            "New Name",
-            "newThumbnail",
-            "<!DOCTYPE html><html>Updated</html>"
+            pageId, "New Name", "newThumbnail", "<!DOCTYPE html><html>Updated</html>"
         );
 
         IWeb3ite.PageInfo memory info = web3ite.getPageInfo(pageId);
@@ -110,7 +92,7 @@ contract Web3iteTest is Test {
     function test_UpdateSinglePage() public {
         address[] memory owners = new address[](1);
         owners[0] = owner;
-        
+
         IWeb3ite.OwnershipConfig memory config = IWeb3ite.OwnershipConfig({
             ownershipType: IWeb3ite.OwnershipType.Single,
             multiSigOwners: owners,
@@ -118,21 +100,11 @@ contract Web3iteTest is Test {
         });
 
         uint256 pageId = web3ite.createPage(
-            "Single Page",
-            "base64Thumbnail",
-            "<!DOCTYPE html><html>Test</html>",
-            config,
-            0.001 ether,
-            false
+            "Single Page", "base64Thumbnail", "<!DOCTYPE html><html>Test</html>", config, 0.001 ether, false
         );
 
         vm.prank(user1);
-        web3ite.requestUpdate{value: 0.001 ether}(
-            pageId,
-            "New Name",
-            "",
-            ""
-        );
+        web3ite.requestUpdate{value: 0.001 ether}(pageId, "New Name", "", "");
 
         web3ite.approveRequest(pageId, 0);
 
@@ -144,7 +116,7 @@ contract Web3iteTest is Test {
         // Create a page
         address[] memory owners = new address[](1);
         owners[0] = owner;
-        
+
         IWeb3ite.OwnershipConfig memory config = IWeb3ite.OwnershipConfig({
             ownershipType: IWeb3ite.OwnershipType.Single,
             multiSigOwners: owners,
@@ -152,12 +124,7 @@ contract Web3iteTest is Test {
         });
 
         uint256 pageId = web3ite.createPage(
-            "Test Page",
-            "base64Thumbnail",
-            "<!DOCTYPE html><html>Test</html>",
-            config,
-            0.001 ether,
-            false
+            "Test Page", "base64Thumbnail", "<!DOCTYPE html><html>Test</html>", config, 0.001 ether, false
         );
 
         // Test voting
@@ -168,23 +135,23 @@ contract Web3iteTest is Test {
         web3ite.vote(pageId, false); // Dislike
 
         IWeb3ite.PageInfo memory info = web3ite.getPageInfo(pageId);
-        assertEq(uint(info.totalLikes), 1);
-        assertEq(uint(info.totalDislikes), 1);
+        assertEq(uint256(info.totalLikes), 1);
+        assertEq(uint256(info.totalDislikes), 1);
 
         // Test vote change
         vm.prank(user1);
         web3ite.vote(pageId, false); // Change like to dislike
 
         info = web3ite.getPageInfo(pageId);
-        assertEq(uint(info.totalLikes), 0);
-        assertEq(uint(info.totalDislikes), 2);
+        assertEq(uint256(info.totalLikes), 0);
+        assertEq(uint256(info.totalDislikes), 2);
     }
 
-        function test_RevertWhen_DuplicateVote() public {
+    function test_RevertWhen_DuplicateVote() public {
         // Create a page
         address[] memory owners = new address[](1);
         owners[0] = owner;
-        
+
         IWeb3ite.OwnershipConfig memory config = IWeb3ite.OwnershipConfig({
             ownershipType: IWeb3ite.OwnershipType.Single,
             multiSigOwners: owners,
@@ -192,12 +159,7 @@ contract Web3iteTest is Test {
         });
 
         uint256 pageId = web3ite.createPage(
-            "Test Page",
-            "base64Thumbnail",
-            "<!DOCTYPE html><html>Test</html>",
-            config,
-            0.001 ether,
-            false
+            "Test Page", "base64Thumbnail", "<!DOCTYPE html><html>Test</html>", config, 0.001 ether, false
         );
 
         vm.prank(user1);

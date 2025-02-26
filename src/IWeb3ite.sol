@@ -11,9 +11,10 @@ interface IWeb3ite {
      * @dev Determines how page modifications are handled
      */
     enum OwnershipType {
-        Single,         // Single owner
-        MultiSig,       // Multiple owners with threshold
-        Permissionless  // Anyone can modify
+        Single, // Single owner
+        MultiSig, // Multiple owners with threshold
+        Permissionless // Anyone can modify
+
     }
 
     /**
@@ -21,26 +22,26 @@ interface IWeb3ite {
      * @dev Used when creating or changing page ownership
      */
     struct OwnershipConfig {
-        OwnershipType ownershipType;    // Type of ownership
-        address[] multiSigOwners;        // List of owners (for Single/MultiSig)
-        uint256 multiSigThreshold;       // Required approvals for MultiSig
+        OwnershipType ownershipType; // Type of ownership
+        address[] multiSigOwners; // List of owners (for Single/MultiSig)
+        uint256 multiSigThreshold; // Required approvals for MultiSig
     }
 
     /**
      * @notice Complete page information returned by getPageInfo
      */
     struct PageInfo {
-        string name;                    // Page name
-        string thumbnail;               // Base64 encoded thumbnail
-        string currentHtml;             // Current HTML content
-        OwnershipType ownershipType;    // Type of ownership
-        bool imt;                       // Immutable flag
-        address[] multiSigOwners;       // List of owners
-        uint256 multiSigThreshold;      // Required approvals
-        uint256 updateFee;              // Fee required for updates
-        uint256 balance;                // Accumulated fees
-        uint120 totalLikes;             // Total likes
-        uint120 totalDislikes;          // Total dislikes
+        string name; // Page name
+        string thumbnail; // Base64 encoded thumbnail
+        string currentHtml; // Current HTML content
+        OwnershipType ownershipType; // Type of ownership
+        bool imt; // Immutable flag
+        address[] multiSigOwners; // List of owners
+        uint256 multiSigThreshold; // Required approvals
+        uint256 updateFee; // Fee required for updates
+        uint256 balance; // Accumulated fees
+        uint120 totalLikes; // Total likes
+        uint120 totalDislikes; // Total dislikes
     }
 
     // Events
@@ -61,38 +62,14 @@ interface IWeb3ite {
         bool hasNewThumbnail,
         bool hasNewHtml
     );
-    event Approved(
-        uint256 indexed pageId,
-        uint256 indexed requestId,
-        address indexed approver
-    );
+    event Approved(uint256 indexed pageId, uint256 indexed requestId, address indexed approver);
     event UpdateExecuted(
-        uint256 indexed pageId,
-        uint256 indexed requestId,
-        string newName,
-        string newThumbnail,
-        string newHtml
+        uint256 indexed pageId, uint256 indexed requestId, string newName, string newThumbnail, string newHtml
     );
-    event PageFeesWithdrawn(
-        uint256 indexed pageId,
-        address indexed receiver,
-        uint256 amount
-    );
-    event OwnershipChanged(
-        uint256 indexed pageId,
-        OwnershipType oldType,
-        OwnershipType newType
-    );
-    event PageTreasuryDistributed(
-        uint256 indexed pageId,
-        address indexed winner,
-        uint256 amount
-    );
-    event VoteChanged(
-        uint256 indexed pageId,
-        uint120 totalLikes,
-        uint120 totalDislikes
-    );
+    event PageFeesWithdrawn(uint256 indexed pageId, address indexed receiver, uint256 amount);
+    event OwnershipChanged(uint256 indexed pageId, OwnershipType oldType, OwnershipType newType);
+    event PageTreasuryDistributed(uint256 indexed pageId, address indexed winner, uint256 amount);
+    event VoteChanged(uint256 indexed pageId, uint120 totalLikes, uint120 totalDislikes);
 
     /**
      * @notice Creates a new page
@@ -127,7 +104,7 @@ interface IWeb3ite {
      * @param _newThumbnail New thumbnail (empty string if no change)
      * @param _newHtml New HTML content (empty string if no change)
      * @dev At least one of _newName, _newThumbnail, or _newHtml must be non-empty
-    */
+     */
     function requestUpdate(
         uint256 _pageId,
         string calldata _newName,
@@ -190,25 +167,25 @@ interface IWeb3ite {
     function getPageOwners(uint256 _pageId) external view returns (address[] memory);
 
     /**
-    * @notice Gets information about an update request
-    * @param _pageId Page ID
-    * @param _requestId Request ID
-    * @return newName Proposed name
-    * @return newThumbnail Proposed thumbnail
-    * @return newHtml Proposed HTML content
-    * @return executed Whether the request has been executed
-    * @return approvalCount Number of approvals received
-    */
-    function getUpdateRequest(
-        uint256 _pageId, 
-        uint256 _requestId
-    ) external view returns (
-        string memory newName,
-        string memory newThumbnail,
-        string memory newHtml,
-        bool executed,
-        uint256 approvalCount
-    );
+     * @notice Gets information about an update request
+     * @param _pageId Page ID
+     * @param _requestId Request ID
+     * @return newName Proposed name
+     * @return newThumbnail Proposed thumbnail
+     * @return newHtml Proposed HTML content
+     * @return executed Whether the request has been executed
+     * @return approvalCount Number of approvals received
+     */
+    function getUpdateRequest(uint256 _pageId, uint256 _requestId)
+        external
+        view
+        returns (
+            string memory newName,
+            string memory newThumbnail,
+            string memory newHtml,
+            bool executed,
+            uint256 approvalCount
+        );
 
     /**
      * @notice Gets accumulated fees for a page
