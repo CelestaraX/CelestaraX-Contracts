@@ -27,16 +27,20 @@ contract Web3ite is IWeb3ite {
      * @notice Internal structure for page data
      */
     struct Page {
+        address[] multiSigOwners;
         string name;
         string thumbnail;
         string currentHtml;
         OwnershipType ownershipType;
         bool imt;
-        address[] multiSigOwners;   
+        uint120 totalLikes;
+        uint120 totalDislikes;
         uint256 multiSigThreshold;
         uint256 updateRequestCount;
-        mapping(uint256 => UpdateRequest) updateRequests;
         uint256 updateFee;
+        mapping(uint256 => UpdateRequest) updateRequests;
+        mapping(address => bool) hasLiked;
+        mapping(address => bool) hasDisliked;
     }
 
     // State variables
@@ -113,6 +117,40 @@ contract Web3ite is IWeb3ite {
         }
 
         emit PageCreated(pageId, msg.sender, _name, _thumbnail, _ownerConfig.ownershipType, _updateFee, _imt);
+    }
+
+    /**
+     * @notice Allows users to vote on a page
+     */
+    function vote(uint256 _pageId, bool _isLike) external {
+        require(_pageId > 0 && _pageId <= _pageCount, "Invalid pageId");
+        Page storage page = _pages[_pageId];
+        
+        if (_isLike) {
+            require(!page.hasLiked[msg.sender], "Already liked");
+            require(page.totalLikes < type(uint120).max, "Max likes reached");
+            if (page.hasDisliked[msg.sender]) {
+                page.hasDisliked[msg.sender] = false;
+                page.totalDislikes--;
+            }
+            page.hasLiked[msg.sender] = true;
+            page.totalLikes++;
+        } else {
+            require(!page.hasDisliked[msg.sender], "Already disliked");
+            require(page.totalDislikes < type(uint120).max, "Max dislikes reached");
+            if (page.hasLiked[msg.sender]) {
+                page.hasLiked[msg.sender] = false;
+                page.totalLikes--;
+            }
+            page.hasDisliked[msg.sender] = true;
+            page.totalDislikes++;
+        }
+
+        emit VoteChanged(
+            _pageId,
+            page.totalLikes,
+            page.totalDislikes
+        );
     }
 
     /**
@@ -345,7 +383,9 @@ contract Web3ite is IWeb3ite {
             multiSigOwners: page.multiSigOwners,
             multiSigThreshold: page.multiSigThreshold,
             updateFee: page.updateFee,
-            balance: _pageBalances[_pageId]
+            balance: _pageBalances[_pageId],
+            totalLikes: page.totalLikes,
+            totalDislikes: page.totalDislikes
         });
     }
 

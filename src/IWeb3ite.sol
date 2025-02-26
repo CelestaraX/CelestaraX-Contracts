@@ -39,6 +39,8 @@ interface IWeb3ite {
         uint256 multiSigThreshold;      // Required approvals
         uint256 updateFee;              // Fee required for updates
         uint256 balance;                // Accumulated fees
+        uint120 totalLikes;             // Total likes
+        uint120 totalDislikes;          // Total dislikes
     }
 
     // Events
@@ -81,6 +83,11 @@ interface IWeb3ite {
         address indexed winner,
         uint256 amount
     );
+    event VoteChanged(
+        uint256 indexed pageId,
+        uint120 totalLikes,
+        uint120 totalDislikes
+    );
 
     /**
      * @notice Creates a new page
@@ -100,6 +107,13 @@ interface IWeb3ite {
         uint256 _updateFee,
         bool _imt
     ) external returns (uint256 pageId);
+
+    /**
+     * @notice Allows users to vote on a page
+     * @param _pageId ID of the page to vote on
+     * @param _isLike Whether the user is voting as a like or dislike
+     */
+    function vote(uint256 _pageId, bool _isLike) external;
 
     /**
      * @notice Submits an update request
