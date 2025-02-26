@@ -14,13 +14,16 @@ contract Web3ite is IWeb3ite {
     bytes constant HTML_END = "</html>";
 
     /**
-     * @notice Internal structure for update requests
-     */
+    * @notice Internal structure for update requests
+    * @dev Stores proposed changes and approval status
+    */
     struct UpdateRequest {
-        string newHtml;
-        bool executed;
-        uint256 approvalCount;          
-        mapping(address => bool) voted; // MultiSig approval status
+        string newName;        // Proposed new page name
+        string newThumbnail;   // Proposed new thumbnail
+        string newHtml;        // Proposed new HTML content
+        bool executed;         // Whether this request has been executed
+        uint256 approvalCount; // Number of approvals received
+        mapping(address => bool) voted; // Tracks which owners have voted
     }
 
     /**
@@ -156,41 +159,61 @@ contract Web3ite is IWeb3ite {
     /**
      * @notice Submits an update request or executes immediate update for Permissionless pages
      */
-    function requestUpdate(uint256 _pageId, string calldata _newHtml)
-        external
-        payable
-        override
-    {
+    function requestUpdate(
+        uint256 _pageId,
+        string calldata _newName,
+        string calldata _newThumbnail,
+        string calldata _newHtml
+    ) external payable override {
         require(_pageId > 0 && _pageId <= _pageCount, "Invalid pageId");
         Page storage page = _pages[_pageId];
 
         require(!page.imt, "Page is immutable");
         require(msg.value >= page.updateFee, "Insufficient fee");
         
-        _pageBalances[_pageId] += msg.value;
+        bool hasNewName = bytes(_newName).length > 0;
+        bool hasNewThumbnail = bytes(_newThumbnail).length > 0;
+        bool hasNewHtml = bytes(_newHtml).length > 0;
+        require(hasNewName || hasNewThumbnail || hasNewHtml, "No updates provided");
+
+        if (hasNewHtml) {
+            bytes memory htmlBytes = bytes(_newHtml);
+            require(htmlBytes.length >= DOCTYPE.length + HTML_END.length, "HTML too short");
+            
+            for(uint i = 0; i < DOCTYPE.length; i++) {
+                require(htmlBytes[i] == DOCTYPE[i], "HTML must start with DOCTYPE");
+            }
+            
+            for(uint i = 0; i < HTML_END.length; i++) {
+                require(
+                    htmlBytes[htmlBytes.length - HTML_END.length + i] == HTML_END[i],
+                    "HTML must end with </html>"
+                );
+            }
+        }
 
         if (page.ownershipType == OwnershipType.Permissionless) {
-            // Immediate update
-            page.currentHtml = _newHtml;
+            if (hasNewName) page.name = _newName;
+            if (hasNewThumbnail) page.thumbnail = _newThumbnail;
+            if (hasNewHtml) page.currentHtml = _newHtml;
+            _pageBalances[_pageId] += msg.value;
 
-            // Record participant (no duplicates)
             if (!_hasParticipated[_pageId][msg.sender]) {
-                _hasParticipated[_pageId][msg.sender] = true;
                 _pageParticipants[_pageId].push(msg.sender);
+                _hasParticipated[_pageId][msg.sender] = true;
             }
 
-            emit UpdateExecuted(_pageId, 0, _newHtml);
-        } 
-        else {
-            // Single / MultiSig
-            uint256 requestId = page.updateRequestCount;
-            UpdateRequest storage newReq = page.updateRequests[requestId];
-            newReq.newHtml = _newHtml;
-            newReq.executed = false;
+            emit UpdateExecuted(_pageId, 0, _newName, _newThumbnail, _newHtml);
+        } else {
+            uint256 requestId = page.updateRequestCount++;
+            UpdateRequest storage request = page.updateRequests[requestId];
+            
+            request.newName = _newName;
+            request.newThumbnail = _newThumbnail;
+            request.newHtml = _newHtml;
+            _pageBalances[_pageId] += msg.value;
 
-            page.updateRequestCount++;
-
-            emit UpdateRequested(_pageId, requestId, msg.sender);
+            emit UpdateRequested(_pageId, requestId, msg.sender, hasNewName, hasNewThumbnail, hasNewHtml);
         }
     }
 
@@ -224,23 +247,39 @@ contract Web3ite is IWeb3ite {
         emit Approved(_pageId, _requestId, msg.sender);
 
         if(req.approvalCount >= page.multiSigThreshold){
-            _executeUpdate(page, req, _pageId, _requestId);
+            _executeUpdate(_pageId, _requestId);
         }
     }
 
     /**
-     * @notice Internal function to execute an update
-     */
-    function _executeUpdate(
-        Page storage _page,
-        UpdateRequest storage _req,
-        uint256 _pageId,
-        uint256 _requestId
-    ) internal {
-        _page.currentHtml = _req.newHtml;
-        _req.executed = true;
+     * @notice Internal function to execute an approved update request
+     * @param _pageId ID of the page
+     * @param _requestId ID of the request to execute
+     * @dev Updates page content with non-empty values from the request
+    */
+    function _executeUpdate(uint256 _pageId, uint256 _requestId) internal {
+        Page storage page = _pages[_pageId];
+        UpdateRequest storage request = page.updateRequests[_requestId];
+        
+        if (bytes(request.newName).length > 0) {
+            page.name = request.newName;
+        }
+        if (bytes(request.newThumbnail).length > 0) {
+            page.thumbnail = request.newThumbnail;
+        }
+        if (bytes(request.newHtml).length > 0) {
+            page.currentHtml = request.newHtml;
+        }
+        
+        request.executed = true;
 
-        emit UpdateExecuted(_pageId, _requestId, _req.newHtml);
+        emit UpdateExecuted(
+            _pageId,
+            _requestId,
+            request.newName,
+            request.newThumbnail,
+            request.newHtml
+        );
     }
 
     /**
@@ -397,6 +436,9 @@ contract Web3ite is IWeb3ite {
         return _pages[_pageId].currentHtml;
     }
 
+    /**
+     * @notice Returns the owners of a specific page
+     */
     function getPageOwners(uint256 _pageId)
         external
         view
@@ -407,31 +449,43 @@ contract Web3ite is IWeb3ite {
         return _pages[_pageId].multiSigOwners;
     }
 
+    /**
+     * @notice Returns information about an update request
+     */
     function getUpdateRequest(
         uint256 _pageId, 
         uint256 _requestId
-    )
-        external
-        view
-        override
-        returns (
-            string memory newHtml,
-            bool executed,
-            uint256 approvalCount
-        )
-    {
+    ) external view override returns (
+        string memory newName,
+        string memory newThumbnail,
+        string memory newHtml,
+        bool executed,
+        uint256 approvalCount
+    ) {
         require(_pageId > 0 && _pageId <= _pageCount, "Invalid pageId");
         Page storage page = _pages[_pageId];
         require(_requestId < page.updateRequestCount, "Invalid requestId");
 
         UpdateRequest storage req = page.updateRequests[_requestId];
-        return (req.newHtml, req.executed, req.approvalCount);
+        return (
+            req.newName,
+            req.newThumbnail,
+            req.newHtml,
+            req.executed,
+            req.approvalCount
+        );
     }
 
+    /**
+     * @notice Returns the total number of pages
+     */
     function pageCount() external view override returns (uint256) {
         return _pageCount;
     }
 
+    /**
+     * @notice Returns the balance of a specific page
+     */
     function pageBalances(uint256 _pageId) external view override returns (uint256) {
         return _pageBalances[_pageId];
     }

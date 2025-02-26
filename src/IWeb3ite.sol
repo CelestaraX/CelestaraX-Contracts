@@ -56,7 +56,10 @@ interface IWeb3ite {
     event UpdateRequested(
         uint256 indexed pageId,
         uint256 indexed requestId,
-        address indexed requester
+        address indexed requester,
+        bool hasNewName,
+        bool hasNewThumbnail,
+        bool hasNewHtml
     );
     event Approved(
         uint256 indexed pageId,
@@ -66,6 +69,8 @@ interface IWeb3ite {
     event UpdateExecuted(
         uint256 indexed pageId,
         uint256 indexed requestId,
+        string newName,
+        string newThumbnail,
         string newHtml
     );
     event PageFeesWithdrawn(
@@ -116,11 +121,19 @@ interface IWeb3ite {
     function vote(uint256 _pageId, bool _isLike) external;
 
     /**
-     * @notice Submits an update request
+     * @notice Submits an update request or executes immediate update for Permissionless pages
      * @param _pageId ID of the page to update
-     * @param _newHtml New HTML content
-     */
-    function requestUpdate(uint256 _pageId, string calldata _newHtml) external payable;
+     * @param _newName New page name (empty string if no change)
+     * @param _newThumbnail New thumbnail (empty string if no change)
+     * @param _newHtml New HTML content (empty string if no change)
+     * @dev At least one of _newName, _newThumbnail, or _newHtml must be non-empty
+    */
+    function requestUpdate(
+        uint256 _pageId,
+        string calldata _newName,
+        string calldata _newThumbnail,
+        string calldata _newHtml
+    ) external payable;
 
     /**
      * @notice Approves an update request for Single/MultiSig pages
@@ -177,17 +190,25 @@ interface IWeb3ite {
     function getPageOwners(uint256 _pageId) external view returns (address[] memory);
 
     /**
-     * @notice Gets information about an update request
-     * @param _pageId Page ID
-     * @param _requestId Request ID
-     * @return newHtml Proposed HTML content
-     * @return executed Whether the request has been executed
-     * @return approvalCount Number of approvals received
-     */
+    * @notice Gets information about an update request
+    * @param _pageId Page ID
+    * @param _requestId Request ID
+    * @return newName Proposed name
+    * @return newThumbnail Proposed thumbnail
+    * @return newHtml Proposed HTML content
+    * @return executed Whether the request has been executed
+    * @return approvalCount Number of approvals received
+    */
     function getUpdateRequest(
         uint256 _pageId, 
         uint256 _requestId
-    ) external view returns (string memory newHtml, bool executed, uint256 approvalCount);
+    ) external view returns (
+        string memory newName,
+        string memory newThumbnail,
+        string memory newHtml,
+        bool executed,
+        uint256 approvalCount
+    );
 
     /**
      * @notice Gets accumulated fees for a page

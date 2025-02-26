@@ -44,16 +44,24 @@ function createPage(
 #### Function Signature:
 
 ```solidity
-function requestUpdate(uint256 _pageId, string calldata _newHtml)
-    external
-    payable;
+function requestUpdate(
+    uint256 _pageId,
+    string calldata _newName,
+    string calldata _newThumbnail,
+    string calldata _newHtml
+) external payable;
 ```
 
 - Called when attempting to modify a page with `_pageId`
-- `msg.value` must be greater than or equal to the page's `Update Fee`, otherwise the transaction fails
+- Allows selective updates to page properties:
+  - `_newName`: New page name (empty string if no change)
+  - `_newThumbnail`: New thumbnail (empty string if no change)
+  - `_newHtml`: New HTML content (empty string if no change)
+- At least one of the three properties must be updated
+- `msg.value` must be greater than or equal to the page's `Update Fee`
 - Behavior varies by page type:
-  - **Permissionless**: Updates are applied immediately (no approval needed). Update fees accumulate in `pageBalances[pageId]`
-  - **Single / MultiSig**: Update requests enter a "Queue" state, requiring subsequent approval (`approveRequest`) for final implementation
+  - **Permissionless**: Updates are applied immediately. Update fees accumulate in `pageBalances[pageId]`
+  - **Single / MultiSig**: Update requests enter a "Queue" state, requiring subsequent approval
 
 ### 3. Approval (approveRequest)
 
@@ -108,6 +116,22 @@ function distributePageTreasury(uint256 _pageId) external;
 - Example logic that distributes accumulated fees (`pageBalances[_pageId]`) from a Permissionless page to one random participant who previously submitted update requests
 - Uses block hash-based randomness, which has security limitations for mainnet services (recommend alternatives like `Chainlink VRF`)
 
+### 7. Page Voting System (vote)
+
+#### Function Signature:
+
+```solidity
+function vote(uint256 _pageId, bool _isLike) external;
+```
+
+- Allows users to like or dislike pages
+- Features:
+  - Each address can vote only once per page
+  - Users can change their vote (like → dislike or vice versa)
+  - Previous vote is automatically canceled when changing vote
+  - Tracks total likes and dislikes per page
+- Emits `VoteChanged` event with updated vote counts
+
 ---
 
 ## Contract Structure
@@ -148,8 +172,29 @@ uint256 pageId = web3ite.createPage(
 ### 2. Request Update
 
 ```solidity
-// Call with fee (0.001 ETH or more)
-web3ite.requestUpdate{value: 1e15}(pageId, "<h1>Updated HTML</h1>");
+// Update only HTML content
+web3ite.requestUpdate{value: 1e15}(
+    pageId,
+    "",                  // No name change
+    "",                  // No thumbnail change
+    "<h1>Updated HTML</h1>"
+);
+
+// Update name and thumbnail
+web3ite.requestUpdate{value: 1e15}(
+    pageId,
+    "New Page Name",
+    "base64EncodedNewThumbnail",
+    ""                   // No HTML change
+);
+
+// Update all properties
+web3ite.requestUpdate{value: 1e15}(
+    pageId,
+    "New Page Name",
+    "base64EncodedNewThumbnail",
+    "<h1>Updated HTML</h1>"
+);
 ```
 
 ### 3. Approve (Single)
@@ -164,6 +209,38 @@ web3ite.approveRequest(pageId, 0);
 ```solidity
 // singleOwner withdraws all fees
 web3ite.withdrawPageFees(pageId);
+```
+
+### 5. Vote on Page
+
+```solidity
+// Like a page
+web3ite.vote(pageId, true);
+
+// Dislike a page
+web3ite.vote(pageId, false);
+```
+
+## Data Structures
+
+### Page Struct
+```solidity
+struct Page {
+    address[] multiSigOwners;
+    string name;
+    string thumbnail;
+    string currentHtml;
+    OwnershipType ownershipType;
+    bool imt;
+    uint120 totalLikes;     // Vote tracking
+    uint120 totalDislikes;  // Vote tracking
+    uint256 multiSigThreshold;
+    uint256 updateRequestCount;
+    uint256 updateFee;
+    mapping(uint256 => UpdateRequest) updateRequests;
+    mapping(address => bool) hasLiked;    // Vote status tracking
+    mapping(address => bool) hasDisliked; // Vote status tracking
+}
 ```
 
 ## Future Development Plans / Improvements
