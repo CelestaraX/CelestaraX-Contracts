@@ -31,14 +31,14 @@ contract Web3iteTest is Test {
         });
 
         uint256 pageId = web3ite.createPage(
-            "Test Page", "base64Thumbnail", "<!DOCTYPE html><html>Test</html>", config, 0.001 ether, false
+            "Test Page", "data:image/jpeg;base64,test123", "<!DOCTYPE html><html>Test</html>", config, 0.001 ether, false
         );
 
         assertEq(pageId, 1);
 
         IWeb3ite.PageInfo memory info = web3ite.getPageInfo(pageId);
         assertEq(info.name, "Test Page");
-        assertEq(info.thumbnail, "base64Thumbnail");
+        assertEq(info.thumbnail, "data:image/jpeg;base64,test123");
         assertEq(info.currentHtml, "<!DOCTYPE html><html>Test</html>");
         assertEq(uint256(info.ownershipType), uint256(IWeb3ite.OwnershipType.Single));
         assertEq(info.updateFee, 0.001 ether);
@@ -57,7 +57,7 @@ contract Web3iteTest is Test {
         });
 
         uint256 pageId = web3ite.createPage(
-            "MultiSig Page", "base64Thumbnail", "<!DOCTYPE html><html>Test</html>", config, 0.001 ether, false
+            "MultiSig Page", "data:image/jpeg;base64,test123", "<!DOCTYPE html><html>Test</html>", config, 0.001 ether, false
         );
 
         IWeb3ite.PageInfo memory info = web3ite.getPageInfo(pageId);
@@ -75,17 +75,17 @@ contract Web3iteTest is Test {
         });
 
         uint256 pageId = web3ite.createPage(
-            "Permissionless Page", "base64Thumbnail", "<!DOCTYPE html><html>Test</html>", config, 0.001 ether, false
+            "Permissionless Page", "data:image/jpeg;base64,test123", "<!DOCTYPE html><html>Test</html>", config, 0.001 ether, false
         );
 
         vm.prank(user1);
         web3ite.requestUpdate{value: 0.001 ether}(
-            pageId, "New Name", "newThumbnail", "<!DOCTYPE html><html>Updated</html>"
+            pageId, "New Name", "data:image/jpeg;base64,test123", "<!DOCTYPE html><html>Updated</html>"
         );
 
         IWeb3ite.PageInfo memory info = web3ite.getPageInfo(pageId);
         assertEq(info.name, "New Name");
-        assertEq(info.thumbnail, "newThumbnail");
+        assertEq(info.thumbnail, "data:image/jpeg;base64,test123");
         assertEq(info.currentHtml, "<!DOCTYPE html><html>Updated</html>");
     }
 
@@ -100,7 +100,7 @@ contract Web3iteTest is Test {
         });
 
         uint256 pageId = web3ite.createPage(
-            "Single Page", "base64Thumbnail", "<!DOCTYPE html><html>Test</html>", config, 0.001 ether, false
+            "Single Page", "data:image/jpeg;base64,test123", "<!DOCTYPE html><html>Test</html>", config, 0.001 ether, false
         );
 
         vm.prank(user1);
@@ -124,7 +124,7 @@ contract Web3iteTest is Test {
         });
 
         uint256 pageId = web3ite.createPage(
-            "Test Page", "base64Thumbnail", "<!DOCTYPE html><html>Test</html>", config, 0.001 ether, false
+            "Test Page", "data:image/jpeg;base64,test123", "<!DOCTYPE html><html>Test</html>", config, 0.001 ether, false
         );
 
         // Test voting
@@ -159,7 +159,7 @@ contract Web3iteTest is Test {
         });
 
         uint256 pageId = web3ite.createPage(
-            "Test Page", "base64Thumbnail", "<!DOCTYPE html><html>Test</html>", config, 0.001 ether, false
+            "Test Page", "data:image/jpeg;base64,test123", "<!DOCTYPE html><html>Test</html>", config, 0.001 ether, false
         );
 
         vm.prank(user1);

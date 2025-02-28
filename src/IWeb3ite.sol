@@ -51,6 +51,8 @@ interface IWeb3ite {
         string name,
         string thumbnail,
         OwnershipType ownershipType,
+        address[] multiSigOwners,
+        uint256 multiSigThreshold,
         uint256 updateFee,
         bool imt
     );
@@ -63,6 +65,7 @@ interface IWeb3ite {
         bool hasNewHtml
     );
     event Approved(uint256 indexed pageId, uint256 indexed requestId, address indexed approver);
+    event UpdateExecutedPermissionless(uint256 indexed pageId, string newName, string newThumbnail, string newHtml);
     event UpdateExecuted(
         uint256 indexed pageId, uint256 indexed requestId, string newName, string newThumbnail, string newHtml
     );

@@ -12,6 +12,14 @@ contract Web3ite is IWeb3ite {
     // Constants for HTML validation
     bytes constant DOCTYPE = "<!DOCTYPE html>";
     bytes constant HTML_END = "</html>";
+    string[] VALID_IMAGE_PREFIXES = [
+        "data:image/jpeg;base64,",
+        "data:image/jpg;base64,",
+        "data:image/png;base64,",
+        "data:image/gif;base64,",
+        "data:image/webp;base64,",
+        "data:image/svg+xml;base64,"
+    ];
 
     /**
      * @notice Internal structure for update requests
@@ -54,6 +62,29 @@ contract Web3ite is IWeb3ite {
     mapping(uint256 => mapping(address => bool)) private _hasParticipated;
 
     /**
+     * @dev Checks if string starts with any valid image prefix
+     */
+    function _isValidBase64Image(string memory _str) internal view returns (bool) {
+        bytes memory strBytes = bytes(_str);
+
+        for (uint256 i = 0; i < VALID_IMAGE_PREFIXES.length; i++) {
+            bytes memory prefix = bytes(VALID_IMAGE_PREFIXES[i]);
+            if (strBytes.length < prefix.length) continue;
+
+            bool isMatch = true;
+            for (uint256 j = 0; j < prefix.length; j++) {
+                if (strBytes[j] != prefix[j]) {
+                    isMatch = false;
+                    break;
+                }
+            }
+            if (isMatch) return true;
+        }
+
+        return false;
+    }
+
+    /**
      * @notice Creates a new page with specified parameters
      */
     function createPage(
@@ -64,6 +95,8 @@ contract Web3ite is IWeb3ite {
         uint256 _updateFee,
         bool _imt
     ) external override returns (uint256 pageId) {
+        require(_isValidBase64Image(_thumbnail), "Invalid base64 image format");
+
         bytes memory htmlBytes = bytes(_initialHtml);
         require(htmlBytes.length >= DOCTYPE.length + HTML_END.length, "HTML too short");
 
@@ -113,7 +146,17 @@ contract Web3ite is IWeb3ite {
             revert("Invalid ownership type");
         }
 
-        emit PageCreated(pageId, msg.sender, _name, _thumbnail, _ownerConfig.ownershipType, _updateFee, _imt);
+        emit PageCreated(
+            pageId,
+            msg.sender,
+            _name,
+            _thumbnail,
+            _ownerConfig.ownershipType,
+            _ownerConfig.multiSigOwners,
+            _ownerConfig.multiSigThreshold,
+            _updateFee,
+            _imt
+        );
     }
 
     /**
@@ -166,6 +209,10 @@ contract Web3ite is IWeb3ite {
         bool hasNewHtml = bytes(_newHtml).length > 0;
         require(hasNewName || hasNewThumbnail || hasNewHtml, "No updates provided");
 
+        if (hasNewThumbnail) {
+            require(_isValidBase64Image(_newThumbnail), "Invalid base64 image format");
+        }
+
         if (hasNewHtml) {
             bytes memory htmlBytes = bytes(_newHtml);
             require(htmlBytes.length >= DOCTYPE.length + HTML_END.length, "HTML too short");
@@ -190,14 +237,14 @@ contract Web3ite is IWeb3ite {
                 _hasParticipated[_pageId][msg.sender] = true;
             }
 
-            emit UpdateExecuted(_pageId, 0, _newName, _newThumbnail, _newHtml);
+            emit UpdateExecutedPermissionless(_pageId, _newName, _newThumbnail, _newHtml);
         } else {
             uint256 requestId = page.updateRequestCount++;
             UpdateRequest storage request = page.updateRequests[requestId];
 
-            request.newName = _newName;
-            request.newThumbnail = _newThumbnail;
-            request.newHtml = _newHtml;
+            if (hasNewName) request.newName = _newName;
+            if (hasNewThumbnail) request.newThumbnail = _newThumbnail;
+            if (hasNewHtml) request.newHtml = _newHtml;
             _pageBalances[_pageId] += msg.value;
 
             emit UpdateRequested(_pageId, requestId, msg.sender, hasNewName, hasNewThumbnail, hasNewHtml);
