@@ -31,7 +31,12 @@ contract Web3iteTest is Test {
         });
 
         uint256 pageId = web3ite.createPage(
-            "Test Page", "data:image/jpeg;base64,test123", "<!DOCTYPE html><html>Test</html>", config, 0.001 ether, false
+            "Test Page",
+            "data:image/jpeg;base64,test123",
+            "<!DOCTYPE html><html>Test</html>",
+            config,
+            0.001 ether,
+            false
         );
 
         assertEq(pageId, 1);
@@ -57,7 +62,12 @@ contract Web3iteTest is Test {
         });
 
         uint256 pageId = web3ite.createPage(
-            "MultiSig Page", "data:image/jpeg;base64,test123", "<!DOCTYPE html><html>Test</html>", config, 0.001 ether, false
+            "MultiSig Page",
+            "data:image/jpeg;base64,test123",
+            "<!DOCTYPE html><html>Test</html>",
+            config,
+            0.001 ether,
+            false
         );
 
         IWeb3ite.PageInfo memory info = web3ite.getPageInfo(pageId);
@@ -75,7 +85,12 @@ contract Web3iteTest is Test {
         });
 
         uint256 pageId = web3ite.createPage(
-            "Permissionless Page", "data:image/jpeg;base64,test123", "<!DOCTYPE html><html>Test</html>", config, 0.001 ether, false
+            "Permissionless Page",
+            "data:image/jpeg;base64,test123",
+            "<!DOCTYPE html><html>Test</html>",
+            config,
+            0.001 ether,
+            false
         );
 
         vm.prank(user1);
@@ -100,7 +115,12 @@ contract Web3iteTest is Test {
         });
 
         uint256 pageId = web3ite.createPage(
-            "Single Page", "data:image/jpeg;base64,test123", "<!DOCTYPE html><html>Test</html>", config, 0.001 ether, false
+            "Single Page",
+            "data:image/jpeg;base64,test123",
+            "<!DOCTYPE html><html>Test</html>",
+            config,
+            0.001 ether,
+            false
         );
 
         vm.prank(user1);
@@ -124,7 +144,12 @@ contract Web3iteTest is Test {
         });
 
         uint256 pageId = web3ite.createPage(
-            "Test Page", "data:image/jpeg;base64,test123", "<!DOCTYPE html><html>Test</html>", config, 0.001 ether, false
+            "Test Page",
+            "data:image/jpeg;base64,test123",
+            "<!DOCTYPE html><html>Test</html>",
+            config,
+            0.001 ether,
+            false
         );
 
         // Test voting
@@ -159,7 +184,12 @@ contract Web3iteTest is Test {
         });
 
         uint256 pageId = web3ite.createPage(
-            "Test Page", "data:image/jpeg;base64,test123", "<!DOCTYPE html><html>Test</html>", config, 0.001 ether, false
+            "Test Page",
+            "data:image/jpeg;base64,test123",
+            "<!DOCTYPE html><html>Test</html>",
+            config,
+            0.001 ether,
+            false
         );
 
         vm.prank(user1);
